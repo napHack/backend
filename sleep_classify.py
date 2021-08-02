@@ -34,6 +34,7 @@ from sklearn import metrics
 import pickle
 from datetime import datetime
 import os
+import time
 
 # ####################
 # # get a output stream where we can play samples
@@ -89,7 +90,7 @@ def __get_fft_features__(data, Fs, freqRange):
     idx = (fr >= freqRange[0]) & (fr <= freqRange[1])
     return Sf[:,idx], fr[idx]
 
-loaded_model = pickle.load(open('svm_model_sleep_1.sav', 'rb'))
+loaded_model = pickle.load(open('models/svm_model_sleep_1.sav', 'rb'))
 
 tm = datetime.now()
 out_root = './'
@@ -175,7 +176,7 @@ if __name__ == "__main__":
             # Get newest samples from the buffer
             data_epoch = utils.get_last_data(eeg_buffer,
                                              EPOCH_LENGTH * fs)
-
+            
             feature_array, freq = __get_fft_features__(data_epoch.T, fs, [4,30])
             # Usage of SVM prediction
             
