@@ -25,8 +25,8 @@ austream = get_output(channels=1, rate=44100, buffersize=128)
 # create one wave sin() at 220Hz, attach it to our speaker, and play
 sinsource = SineSource(austream, 1000)
 
-freqs = [100 * (2**(1/4))**i for i in range(10)]
-
+freqs = [100 * (2**(1/4))**i for i in range(20)]
+freqs = freqs[::-1]
 alphametric_bins = np.linspace(-1, 1, len(freqs)-2)
 ## set lower and upper limits too high so dff indexing never goes out of range
 alphametric_bins = np.insert(alphametric_bins, 0, np.NINF)

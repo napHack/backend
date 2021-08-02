@@ -35,6 +35,7 @@ import pickle
 from datetime import datetime
 import os
 import time
+from playsound import playsound
 
 # ####################
 # # get a output stream where we can play samples
@@ -58,16 +59,17 @@ class Band:
     Alpha = 2
     Beta = 3
 
+sleep_state_arr = ['Awake', 'NREM-1', 'NREM-2', 'NREM-3', 'NREM-4', 'REM']
 
 """ EXPERIMENTAL PARAMETERS """
 # Modify these to change aspects of the signal processing
 
 # Length of the EEG data buffer (in seconds)
 # This buffer will hold last n seconds of data and be used for calculations
-BUFFER_LENGTH = 5
+BUFFER_LENGTH = 10
 
 # Length of the epochs used to compute the FFT (in seconds)
-EPOCH_LENGTH = 1
+EPOCH_LENGTH = 5
 
 # Amount of overlap between two consecutive epochs (in seconds)
 OVERLAP_LENGTH = 0.8
@@ -77,20 +79,23 @@ SHIFT_LENGTH = EPOCH_LENGTH - OVERLAP_LENGTH
 
 # Index of the channel(s) (electrodes) to be used
 # 0 = left ear, 1 = left forehead, 2 = right forehead, 3 = right ear
-INDEX_CHANNEL = [0,3]
+INDEX_CHANNEL = [0,1,2,3]
 
 # Function to extract features
 def __get_fft_features__(data, Fs, freqRange):
     data = scipy.stats.zscore(data, axis=1)
     N = data.shape[1]
     T = 1/Fs
-    Sf = np.abs(fft(np.multiply(data, np.matlib.repmat(scipy.signal.hann(N),2,1))))
+    Sf = np.abs(fft(np.multiply(data, np.matlib.repmat(scipy.signal.hann(N),data.shape[0],1))))
     Sf = Sf[:,:N//2]
     fr = fftfreq(N, T)[:N//2]
     idx = (fr >= freqRange[0]) & (fr <= freqRange[1])
     return Sf[:,idx], fr[idx]
 
-loaded_model = pickle.load(open('models/svm_model_sleep_1.sav', 'rb'))
+# loaded_model = pickle.load(open('models/svm_model_sleep_1.sav', 'rb'))
+loaded_model = pickle.load(open('models/svm_model.sav', 'rb'))
+# loaded_model = pickle.load(open('models/svm_model_sleep_2.sav', 'rb'))
+# loaded_model = pickle.load(open('models/svm_model_sleep_99_sub1.sav', 'rb'))
 
 tm = datetime.now()
 out_root = './'
@@ -133,23 +138,23 @@ if __name__ == "__main__":
     """ 2. INITIALIZE BUFFERS """
 
     # Initialize raw EEG data buffer
-    eeg_buffer = np.zeros((int(fs * BUFFER_LENGTH), 2))
+    eeg_buffer = np.zeros((int(fs * BUFFER_LENGTH), 4))
     filter_state = None  # for use with the notch filter
 
     # Compute the number of epochs in "buffer_length"
     n_win_test = int(np.floor((BUFFER_LENGTH - EPOCH_LENGTH) /
                               SHIFT_LENGTH + 1))
-
-    # Initialize the band power buffer (for plotting)
-    # bands will be ordered: [delta, theta, alpha, beta]
-    band_buffer = np.zeros((n_win_test, 4))
+    
+    nap_time = float(input("Enter desired nap time in minutes: "))
+    target_sleep_state = int(input("Enter target sleep state(1-5) for the nap: "))
 
     """ 3. GET DATA """
 
     # The try/except structure allows to quit the while loop by aborting the
     # script with <Ctrl-C>
     print('Press Ctrl-C in the console to break the while loop.')
-
+    t = nap_time * 60
+    tic = time.perf_counter()
     ###################################
     # sinsource.start()
     ##################################
@@ -165,7 +170,7 @@ if __name__ == "__main__":
 
             # Only keep the channel we're interested in
             # ch_data = np.array(eeg_data)[:, INDEX_CHANNEL]
-            ch_data = np.array(eeg_data)[:, ::3]
+            ch_data = np.array(eeg_data)[:, 0:4]
 
             # Update EEG buffer with the new data
             eeg_buffer, filter_state = utils.update_buffer(
@@ -176,56 +181,20 @@ if __name__ == "__main__":
             # Get newest samples from the buffer
             data_epoch = utils.get_last_data(eeg_buffer,
                                              EPOCH_LENGTH * fs)
-            
-            feature_array, freq = __get_fft_features__(data_epoch.T, fs, [4,30])
+            data_epoch = mne.filter.filter_data(data_epoch, fs, 1, 40, method='iir', verbose=False)
+            feature_array, freq = __get_fft_features__(data_epoch.T, fs, [1,40])
             # Usage of SVM prediction
             
-            y_pred = loaded_model.predict(feature_array.reshape([1,54]))
-            print('Sleep state: ', y_pred)
+            sleep_state = loaded_model.predict(feature_array.reshape([1,feature_array.shape[0] * feature_array.shape[1]]))
+            print('Sleep state: ', sleep_state_arr[sleep_state[0]])
             sttime = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-            logFile.write(sttime + ',' + str(int(y_pred)) + '\n')
+            logFile.write(sttime + ',' + str(int(sleep_state)) + '\n')
             
-            #####################################
-            # # Compute band powers
-            # band_powers = utils.compute_band_powers(data_epoch, fs)
-            # band_buffer, _ = utils.update_buffer(band_buffer,
-            #                                      np.asarray([band_powers]))
-            # # Compute the average band powers for all epochs in buffer
-            # # This helps to smooth out noise
-            # smooth_band_powers = np.mean(band_buffer, axis=0)
-            #########################################
-
-            # print('Delta: ', band_powers[Band.Delta], ' Theta: ', band_powers[Band.Theta],
-            #       ' Alpha: ', band_powers[Band.Alpha], ' Beta: ', band_powers[Band.Beta])
-
-            """ 3.3 COMPUTE NEUROFEEDBACK METRICS """
-            # These metrics could also be used to drive brain-computer interfaces
-
-            # Alpha Protocol:
-            # Simple redout of alpha power, divided by delta waves in order to rule out noise
-            ###################################################
-            # alpha_metric = smooth_band_powers[Band.Alpha] / \
-            #     smooth_band_powers[Band.Delta]
+            if (time.perf_counter() - tic > t) and sleep_state == target_sleep_state:
+                playsound('alarm/SlowMorning.mp3')
+                # time.sleep(5)
+                break
             
-            # fq = int(freqs[np.searchsorted(alphametric_bins, alpha_metric)])
-            # sinsource.frequency = fq
-            # print('Alpha Relaxation: ', alpha_metric, ' Freq: ', fq)
-            ################################################
-
-            # Beta Protocol:
-            # Beta waves have been used as a measure of mental activity and concentration
-            # This beta over theta ratio is commonly used as neurofeedback for ADHD
-            # beta_metric = smooth_band_powers[Band.Beta] / \
-            #     smooth_band_powers[Band.Theta]
-            # print('Beta Concentration: ', beta_metric)
-
-            # Alpha/Theta Protocol:
-            # This is another popular neurofeedback metric for stress reduction
-            # Higher theta over alpha is supposedly associated with reduced anxiety
-            # theta_metric = smooth_band_powers[Band.Theta] / \
-            #     smooth_band_powers[Band.Alpha]
-            # print('Theta Relaxation: ', theta_metric)
-
     except KeyboardInterrupt:
         print('Closing!')
         
