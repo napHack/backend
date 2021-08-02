@@ -24,6 +24,7 @@ import pandas as pd
 import pyedflib
 import mne
 import numpy.matlib
+import numpy.matlib
 import scipy
 from sklearn import svm
 from pyedflib import highlevel
@@ -88,7 +89,7 @@ def __get_fft_features__(data, Fs, freqRange):
     idx = (fr >= freqRange[0]) & (fr <= freqRange[1])
     return Sf[:,idx], fr[idx]
 
-loaded_model = pickle.load(open('SVM_Model_Sleep_1.sav', 'rb'))
+loaded_model = pickle.load(open('svm_model_sleep_1.sav', 'rb'))
 
 tm = datetime.now()
 out_root = './'
