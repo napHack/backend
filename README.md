@@ -37,7 +37,8 @@ You can train the SVM Model in our aplication by running the Train_SVM_Classify_
  'S2' 'S2' 'S2' 'S2' 'S2' 'S2' 'R' 'R' 'R' 'R' 'R' 'R' 'R' 'R' 'R' 'R'
  'S2' 'S2' 'S2' 'S2' 'S2' 'S2' 'S2' 'S2' 'S2' 'S2' 'S2' 'S2' 'S2' 'S2'
  'S2' 'S2' 'S2' 'W' 'W' 'S2' 'S2' 'S2' 'S2' 'S2' 
- 
+ ## Test the model ##
+ sleep_classify.py: In this script, the trained model above can be loaded and tested on real time stream of EEG data from Muse-S.
  ## NeuroFeedback Audio ##
 The neurofeedback_audio python code estimates band powers and maps them to the frequency of auditory tone feedback. The code also computes ratios of the band powers which can be used to estimate mental state for neurofeedback.
 Make sure that your muse device is connected to your computer. Run `$ python neurofeedback_audio.py` to use this feature. 
