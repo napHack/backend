@@ -42,6 +42,12 @@ You can train the SVM Model in our aplication by running the Train_SVM_Classify_
 The neurofeedback_audio python code estimates band powers and maps them to the frequency of auditory tone feedback. The code also computes ratios of the band powers which can be used to estimate mental state for neurofeedback.
 Make sure that your muse device is connected to your computer. Run `$ python neurofeedback_audio.py` to use this feature. 
 
+## Summary ##
+We are using the MUSE-LSL python package to stream real-time EEG data (Fs=256Hz) from 4 electrodes (TP9,AF7,AF8, and TP10) of the MUSE-S head-band to a PC. The EEG data is band-pass filtered from 1-40Hz (IIR filter) and z-scored. 
+Power in delta (1-3Hz) and alpha (8-12Hz) frequency bands is computed using the preprocessed data. The ratio of alpha-to-delta power is inversely mapped to the frequency of an audio-tone, used as neurofeedback. Higher alpha-to-delta ratio, indicating a relaxed state, would increasingly correspond to lower audio frequencies, enabling relaxed sleep. 
+Additionally, preprocessed data is used to estimate spectral features (FFT), classify the sleep states, and monitor them in real-time using a pre-trained SVM classifier. After the desired nap time and upon reaching a predetermined sleep state, an alarm is set-off to wake-up the user. The SVM classifier is trained to classify 6 sleep-states using EEG data, acquired from publicly available CAP Sleep Database, and provides a test accuracy of 57% (Chance=16.7% ). 
+
+
 
 
  
