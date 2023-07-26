@@ -7,7 +7,7 @@ Our software uses a machine learning algorithm to identify the stage of sleep th
 ## Environment ##
 The following setup is required to reproduce this work:
 
-- Windows 10 x64
+- minimum Ubuntu 18.04 / Windows 10 x64 / MacOS
 - Python 3.8.10 x64
 - matplotlib (1.5.3)
 - scikit-learn (0.19.1)
